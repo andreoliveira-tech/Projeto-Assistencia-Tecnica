@@ -1,32 +1,49 @@
 schema: spec-driven
 
-# Project context (optional)
-# This is shown to AI when creating artifacts.
-# Add your tech stack, conventions, style guides, domain knowledge, etc.
-# Example:
-#   context: |
-#     Tech stack: TypeScript, React, Node.js
-#     We use conventional commits
-#     Domain: e-commerce platform
+context: |
+  Projeto acadêmico de um Sistema de Assistência Técnica.
 
-# Per-artifact rules (optional)
-# Add custom rules for specific artifacts.
-# Example:
-#   rules:
-#     proposal:
-#       - Keep proposals under 500 words
-#       - Always include a "Non-goals" section
-#     tasks:
-#       - Break tasks into chunks of max 2 hours
+  Antes de propor ou implementar mudanças, considerar:
+  - docs/project-overview.md para a visão global do projeto;
+  - docs/domain-model.md para o modelo conceitual e relacionamentos;
+  - AGENTS.md para as regras operacionais de desenvolvimento.
 
-# Per-operation guidance (optional)
-# Add advisory guidance for how apply and archive work should be conducted.
-# This is separate from artifact rules above.
-# Example:
-#   operations:
-#     apply:
-#       guidance:
-#         - Keep test summaries concise
-#     archive:
-#       guidance:
-#         - Summarize the archive outcome before finishing
+  O domínio possui cinco conceitos principais:
+  Cliente, Equipamento, Ordem de Serviço, Técnico e Serviço.
+
+  Backend:
+  - Xano;
+  - XanoScript quando aplicável;
+  - APIs disponibilizadas pelo Xano.
+
+  Frontend:
+  - Streamlit é a tecnologia obrigatória e exclusiva para implementação das interfaces;
+  - Python será utilizado na aplicação Streamlit e na integração com as APIs do Xano.
+
+  Desenvolvimento:
+  - Git e GitHub para controle de versão;
+  - OpenSpec para desenvolvimento incremental;
+  - funcionalidades devem evoluir através de Changes pequenas e verificáveis;
+  - o modelo global do domínio deve ser respeitado;
+  - não implementar antecipadamente todo o sistema apenas para completar a estrutura.
+
+rules:
+  proposal:
+    - Manter o escopo da Change pequeno, incremental e verificável.
+    - Identificar claramente objetivos, impactos, dependências e itens fora do escopo.
+    - Não introduzir funcionalidades ou tecnologias não previstas sem justificativa explícita.
+
+  specs:
+    - Descrever comportamentos de forma clara e verificável.
+    - Respeitar o modelo de domínio e as decisões arquiteturais existentes.
+    - Não presumir requisitos que ainda não tenham sido definidos.
+
+  design:
+    - Manter Xano como backend e Streamlit como frontend.
+    - Registrar decisões técnicas relevantes e suas consequências.
+    - Evitar complexidade desnecessária para o escopo acadêmico.
+
+  tasks:
+    - Dividir a implementação em tarefas pequenas e verificáveis.
+    - Incluir atividades de validação quando necessárias.
+    - Não incluir tarefas pertencentes a funcionalidades futuras fora da Change atual.      
