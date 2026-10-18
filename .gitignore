@@ -1,0 +1,33 @@
+# Ambientes virtuais Python (em qualquer pasta).
+.venv/
+venv/
+env/
+ENV/
+.env/
+
+# Configuração local e segredos; exemplos sem credenciais podem ser versionados.
+.env
+.env.*
+!.env.example
+!.env.sample
+!.env.template
+!.env.*.example
+!.env.*.sample
+!.env.*.template
+secrets.toml
+
+# Caches e arquivos gerados pelo Python e ferramentas de verificação.
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Logs de execução.
+/logs/
+/frontend/logs/
+*.log
+*.log.*
+!*.log.example
+!*.log.sample
+!*.log.template

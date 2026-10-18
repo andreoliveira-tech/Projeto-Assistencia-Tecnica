@@ -1,0 +1,91 @@
+/* Apresentação local: sem fontes, imagens ou recursos externos. */
+:root {
+    --at-navy: #17365D;
+    --at-blue: #2563EB;
+    --at-surface: #F8FAFC;
+    --at-success: #16A34A;
+}
+
+.stApp, [data-testid="stAppViewContainer"] {
+    background: var(--at-surface);
+    color: #243449;
+    color-scheme: light;
+}
+[data-testid="stHeader"] { background: var(--at-surface); }
+[data-testid="stMainBlockContainer"] {
+    max-width: 1150px;
+    padding: 3rem 3.5rem 4rem;
+}
+h1, h2, h3 { color: var(--at-navy) !important; letter-spacing: -0.035em; }
+h1 { font-weight: 750 !important; padding-top: 0 !important; }
+h3 { margin-top: 0.5rem !important; }
+.page-eyebrow {
+    margin: 0 0 0.3rem;
+    color: var(--at-blue);
+    font-size: 0.72rem;
+    font-weight: 750;
+    letter-spacing: 0.15em;
+}
+[data-testid="stCaptionContainer"] { color: #64748B; line-height: 1.6; }
+hr { border-color: #E2E8F0 !important; margin: 1.4rem 0 !important; }
+
+[data-testid="stSidebar"] { background: var(--at-navy); }
+[data-testid="stSidebar"] [data-testid="stSidebarContent"] { padding-top: 1.5rem; }
+[data-testid="stSidebar"] p,
+[data-testid="stSidebar"] [data-testid="stCaptionContainer"] { color: #D6E3F3; }
+[data-testid="stSidebar"] button { color: white; }
+.system-brand { display: flex; align-items: center; gap: 0.8rem; margin: 0.3rem 0 3rem; }
+.brand-symbol {
+    display: grid; place-items: center; min-width: 44px; height: 44px;
+    border: 1px solid #6D8AB0; border-radius: 12px;
+    background: #244872; color: white; font-weight: 800; letter-spacing: -0.05em;
+}
+.system-brand strong { display: block; color: white; font-size: 1rem; }
+.system-brand span { display: block; color: #BDCEE5; font-size: 0.8rem; margin-top: 0.25rem; }
+[data-testid="stSidebar"] .nav-label { font-size: 0.68rem; letter-spacing: 0.16em; font-weight: 700; }
+.client-nav { display: grid; gap: 0.5rem; margin-bottom: 2rem; }
+.client-nav a {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 0.85rem 1rem; border-radius: 9px;
+    color: #FFFFFF !important; text-decoration: none !important;
+    background: #234773; border: 1px solid #365A85; font-size: 0.9rem;
+}
+.client-nav a:hover { background: #2A5488; border-color: #82A7D3; }
+.client-nav a:focus-visible { outline: 3px solid #93C5FD; outline-offset: 3px; }
+.client-nav span { color: #BCD4F4; }
+
+[data-testid="stForm"] {
+    background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 16px;
+    padding: 1.7rem 1.8rem; box-shadow: 0 4px 18px #17365D06;
+}
+[data-testid="stTextInput"] label p { color: var(--at-navy); font-weight: 600; }
+[data-testid="stTextInput"] [data-baseweb="input"] {
+    background: var(--at-surface); border-color: #CBD5E1; border-radius: 8px;
+}
+[data-testid="stTextInput"] input { color: #1E293B; min-height: 2.7rem; }
+[data-testid="stTextInput"] [data-baseweb="input"]:focus-within {
+    border-color: var(--at-blue); box-shadow: 0 0 0 3px #2563EB16;
+}
+[data-testid="stFormSubmitButton"] button,
+[data-testid="stButton"] button {
+    background: var(--at-blue); color: #FFFFFF; border: 1px solid var(--at-blue);
+    border-radius: 8px; padding: 0.65rem 1.2rem; font-weight: 650;
+    min-height: 2.7rem; margin-top: 0.35rem;
+}
+[data-testid="stFormSubmitButton"] button:hover,
+[data-testid="stButton"] button:hover { background: #1D4ED8; color: white; border-color: #1D4ED8; }
+[data-testid="stFormSubmitButton"] button:focus-visible,
+[data-testid="stButton"] button:focus-visible { outline: 3px solid #93C5FD; outline-offset: 3px; }
+[data-testid="stAlert"] { border-radius: 10px; }
+[data-testid="stAlertContentSuccess"] { color: #166534; }
+[data-testid="stAlert"]:has([data-testid="stAlertContentSuccess"]) {
+    background: #F0FDF4; border-left: 4px solid var(--at-success);
+}
+[data-testid="stDataFrame"] {
+    background: white; border: 1px solid #E2E8F0; border-radius: 12px;
+    padding: 0.3rem; overflow: hidden;
+}
+@media (max-width: 700px) {
+    [data-testid="stMainBlockContainer"] { padding: 2rem 1rem; }
+    [data-testid="stForm"] { padding: 1rem; }
+}
