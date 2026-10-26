@@ -7,7 +7,63 @@ from config import load_api_base_url
 from clientes_api import (
     CadastroError, ClienteNaoEncontradoError, ConsultaError, ListagemError,
     AtualizacaoError, atualizar_cliente, cadastrar_cliente, consultar_cliente, listar_clientes,
+    ExclusaoError, ExclusaoBloqueadaError, excluir_cliente,
 )
+
+
+def novo_estado_exclusao(base_url, selecao="", geracao=0):
+    return {
+        "base_url": base_url, "selecao": selecao, "geracao": geracao,
+        "id_cliente": None, "dados": None, "erro": None, "aviso": None,
+        "sucesso": False, "conferir": False,
+    }
+
+
+def invalidar_cliente_ausente(base_url, id_cliente):
+    """Invalida resultados locais, sem novas consultas nem alterações de outros clientes."""
+    listagem = st.session_state.get("clientes_listagem")
+    if listagem and listagem["base_url"] == base_url:
+        listagem.update(dados=None, erro=None)
+    consulta = st.session_state.get("cliente_consulta")
+    if consulta and consulta["base_url"] == base_url and consulta["id_cliente"] == id_cliente:
+        consulta.update(dados=None, erro="Cliente não encontrado.", nao_encontrado=True)
+    edicao = st.session_state.get("cliente_edicao")
+    if edicao and edicao["base_url"] == base_url and edicao["id_cliente"] == id_cliente:
+        edicao.update(
+            id_cliente=None, dados=None, confirmado=None, sucesso=False,
+            conferir=False, erro="Cliente não encontrado.", geracao=edicao["geracao"] + 1,
+        )
+
+
+def conferir_exclusao(base_url, estado, resposta_valida=False):
+    """Confere ausência por GET; somente uma resposta válida anterior permite declarar sucesso."""
+    estado.update(erro=None, aviso=None, sucesso=False)
+    try:
+        cliente = consultar_cliente(base_url, estado["id_cliente"], confirmar_ausencia=True)
+    except ClienteNaoEncontradoError:
+        invalidar_cliente_ausente(base_url, estado["id_cliente"])
+        estado.update(dados=None, conferir=False, sucesso=resposta_valida)
+        if not resposta_valida:
+            estado["aviso"] = (
+                "Cliente não encontrado na conferência atual. "
+                "Isso não confirma que a tentativa anterior realizou a exclusão."
+            )
+    except ConsultaError:
+        estado.update(dados=None, conferir=True)
+        estado["erro"] = (
+            "Não foi possível conferir a ausência do cliente. "
+            "Use Conferir estado atual da exclusão antes de uma nova tentativa."
+        )
+    else:
+        if resposta_valida:
+            estado.update(dados=None, conferir=True)
+            estado["erro"] = (
+                "O serviço respondeu à exclusão, mas o cliente ainda foi encontrado. "
+                "Confira o estado atual antes de tentar novamente."
+            )
+        else:
+            estado.update(dados=cliente, conferir=False)
+            estado["aviso"] = "O cliente existe na consulta atual. Uma nova exclusão exige nova confirmação."
 
 
 st.set_page_config(
@@ -32,6 +88,7 @@ with st.sidebar:
         '<a href="#clientes-cadastrados" target="_self">Clientes cadastrados <span>↗</span></a>'
         '<a href="#consultar-cliente" target="_self">Consultar cliente <span>↗</span></a>'
         '<a href="#editar-cliente" target="_self">Editar cliente <span>↗</span></a>'
+        '<a href="#excluir-cliente" target="_self">Excluir cliente <span>↗</span></a>'
         '</nav>',
         unsafe_allow_html=True,
     )
@@ -277,6 +334,9 @@ else:
                             )
                         else:
                             edicao.update(confirmado=confirmado, sucesso=True, conferir=False)
+                # Reflete imediatamente o bloqueio de novo envio ou o sucesso,
+                # sem depender de uma interação posterior para redesenhar o botão.
+                st.rerun()
         if edicao["erro"]:
             st.error(edicao["erro"])
         if edicao["sucesso"]:
@@ -290,3 +350,90 @@ else:
             )
         if edicao["conferir"]:
             st.warning("Atualização sem confirmação. Use Conferir estado atual antes de um novo envio.")
+
+        st.divider()
+        st.subheader("Excluir cliente", anchor="excluir-cliente")
+        anterior = st.session_state.get("cliente_exclusao")
+        if anterior is None or anterior["base_url"] != api_base_url:
+            st.session_state.cliente_exclusao = novo_estado_exclusao(
+                api_base_url, geracao=(anterior["geracao"] + 1 if anterior else 0)
+            )
+        exclusao = st.session_state.cliente_exclusao
+        selecao = st.text_input(
+            "Identificador para exclusão", key="exclusao_selecao_id",
+            disabled=exclusao["conferir"],
+        ).strip()
+        if selecao != exclusao["selecao"]:
+            exclusao = novo_estado_exclusao(api_base_url, selecao, exclusao["geracao"] + 1)
+            st.session_state.cliente_exclusao = exclusao
+
+        if st.button("Carregar para exclusão", key="carregar_exclusao", disabled=exclusao["conferir"]):
+            exclusao = novo_estado_exclusao(api_base_url, selecao, exclusao["geracao"] + 1)
+            st.session_state.cliente_exclusao = exclusao
+            try:
+                if not selecao or any(c not in "0123456789" for c in selecao):
+                    raise ValueError
+                alvo = int(selecao)
+                if alvo <= 0:
+                    raise ValueError
+                exclusao["id_cliente"] = alvo
+                with st.spinner("Carregando cliente para exclusão..."):
+                    exclusao["dados"] = consultar_cliente(api_base_url, alvo)
+            except ValueError:
+                exclusao["erro"] = "Informe um identificador inteiro positivo."
+            except ClienteNaoEncontradoError as error:
+                invalidar_cliente_ausente(api_base_url, alvo)
+                exclusao["aviso"] = str(error)
+                st.rerun()
+            except ConsultaError as error:
+                exclusao["erro"] = str(error)
+
+        if exclusao["conferir"]:
+            st.warning("Resultado sem confirmação. Não reenvie a exclusão antes de conferir o estado atual.")
+            if st.button("Conferir estado atual da exclusão", key="conferir_exclusao"):
+                with st.spinner("Conferindo estado atual..."):
+                    conferir_exclusao(api_base_url, exclusao)
+                st.rerun()
+
+        if exclusao["dados"] is not None:
+            cliente_alvo = exclusao["dados"]
+            st.write(f"Cliente selecionado: {cliente_alvo['id_cliente']} — {cliente_alvo['nome']}")
+            st.warning(
+                "A exclusão é definitiva. Clientes com equipamentos vinculados "
+                "terão a exclusão bloqueada pelo serviço."
+            )
+            confirmar = st.checkbox(
+                f"Confirmo a exclusão do cliente {cliente_alvo['id_cliente']} — {cliente_alvo['nome']}",
+                key=f"exclusao_confirmacao_{exclusao['geracao']}",
+            )
+            if st.button("Excluir definitivamente", key="excluir_definitivamente", disabled=not confirmar) and confirmar:
+                # Consome a seleção antes da tentativa: reruns não podem reenviar o DELETE.
+                exclusao.update(dados=None, erro=None, aviso=None, sucesso=False)
+                exclusao["geracao"] += 1
+                try:
+                    with st.spinner("Excluindo cliente..."):
+                        excluir_cliente(api_base_url, exclusao["id_cliente"])
+                except ClienteNaoEncontradoError as error:
+                    invalidar_cliente_ausente(api_base_url, exclusao["id_cliente"])
+                    exclusao["aviso"] = str(error)
+                except ExclusaoBloqueadaError as error:
+                    exclusao["erro"] = str(error)
+                except ExclusaoError as error:
+                    exclusao.update(erro=str(error), conferir=error.incerto)
+                else:
+                    with st.spinner("Confirmando ausência por nova consulta..."):
+                        conferir_exclusao(api_base_url, exclusao, resposta_valida=True)
+                st.rerun()
+
+        if exclusao["id_cliente"] is not None:
+            if st.button("Cancelar", key="cancelar_exclusao"):
+                st.session_state.cliente_exclusao = novo_estado_exclusao(
+                    api_base_url, selecao, exclusao["geracao"] + 1
+                )
+                st.rerun()
+        if exclusao["erro"]:
+            st.error(exclusao["erro"])
+        if exclusao["aviso"]:
+            st.info(exclusao["aviso"])
+        if exclusao["sucesso"]:
+            st.success("Exclusão confirmada por nova consulta: cliente não encontrado.")
