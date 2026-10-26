@@ -185,7 +185,9 @@ Consolidação das operações e verificações previamente autorizadas e aprova
 | --- | --- | --- |
 | Cliente fictício 11 com equipamento 2 vinculado | HTTP 400; `ERROR_CODE_INPUT_ERROR`; `Cliente possui equipamentos vinculados. Exclusao bloqueada.` | Oito clientes e dois equipamentos integralmente preservados. Equipamento 2 permaneceu com cliente 11; equipamento 1 com cliente 12. |
 | Cliente inexistente 2, previamente confirmado ausente | HTTP 404; `ERROR_CODE_NOT_FOUND`; `Cliente nao encontrado.` | Mesmos oito clientes e dois equipamentos, sem divergência em campos, valores ou tipos. |
-| Cliente fictício 9 sem equipamentos, previamente conferido | HTTP 200; `{"id_cliente":9,"excluido":true}` | GET individual retornou HTTP 404. Restaram sete clientes, IDs 1, 3, 7, 8, 10, 11 e 12, integralmente preservados. Equipamentos 1 e 2 inalterados, sem cascata. |
+| Cliente fictício 9 sem equipamentos, previamente conferido | HTTP 200; `{"id_cliente":9,"excluido":true}` | GET individual retornou HTTP 404. Restaram sete clientes, identificados nesta evidência como `CLIENTE_BASELINE_01` a `CLIENTE_BASELINE_07`, integralmente preservados. Equipamentos 1 e 2 inalterados, sem cascata. |
+
+**Pseudonimização da evidência:** os sete identificadores reais do baseline foram substituídos por referências neutras nesta documentação destinada ao repositório. A correspondência é individual e mantém a comparação histórica; os registros do Xano e os IDs usados pelo código e pelos testes não foram alterados.
 
 **Falha de consulta — inspeção e simulação local, não teste integrado no runtime Xano:** a inspeção do XanoScript confirmou que a consulta de dependências antecede o único `db.del cliente`, sem captura de exceção, continuação em erro ou resposta de sucesso anterior à exclusão. Um modelo restrito dessa sequência em Python, executado somente em memória com rede bloqueada, substituiu a consulta por uma exceção controlada e a exclusão por um registrador sem capacidade de gravação. A consulta foi chamada uma vez, a exceção foi propagada, o registrador de exclusão teve **zero chamadas**, nenhuma resposta de sucesso foi produzida e os dados em memória foram preservados. Houve zero tentativas de rede e nenhum arquivo de teste foi criado.
 
@@ -196,6 +198,46 @@ Essa simulação não interpretou XanoScript, não executou o endpoint e não co
 **Estado final conhecido:** cliente fictício 9 excluído; sete clientes restantes; equipamento 1, marcador A da rodada T16, vinculado ao cliente 12; equipamento 2, marcador B, vinculado ao cliente 11. Nenhum equipamento foi excluído. Novas operações e eventual limpeza dependem de autorização específica.
 
 ## Risks / Trade-offs
+
+### Atualização de evidências do frontend — 26/10/2026
+
+Após autorização para concluir a entrega local e testar exclusivamente um cliente
+descartável, a suíte foi ampliada para **49 testes locais aprovados**, com HTTP
+simulado e bloqueio de conexões externas nas rotas exercitadas. Cadastro, listagem,
+consulta, edição e exclusão têm verificação de erros e regressões. HTTP 408 é
+tratado como resultado incerto nas escritas; o formulário de edição redesenha
+imediatamente o bloqueio de novo envio. A confirmação de ausência após DELETE
+exige GET 404 com JSON válido, código `ERROR_CODE_NOT_FOUND` e mensagem conhecida
+`Cliente não encontrado.`. Um 404 genérico não confirma exclusão.
+
+A URL sem sufixo `https://x8ki-letl-twmt.n7.xano.io/api:assistencia-tecnica-clientes`
+foi associada ao workspace 149143, grupo 436987 e branch `v1` live por GETs de
+metadados, conforme a regra de resolução de URLs do Xano.
+
+O teste integrado executou o código real do Streamlit via AppTest, sem navegador:
+GET de listagem 200; POST pelo formulário 200, criando exclusivamente o cliente
+fictício `T35-EXCLUSAO-20261026-01`, ID **13**; GET para carregamento 200; DELETE
+após confirmação explícita 200; GET posterior 404 conhecido; GET de listagem 200.
+Houve exatamente um POST e um DELETE. O cliente 13 foi excluído. Os sete clientes
+preexistentes permaneceram iguais em IDs, campos, valores e tipos retornados pela
+API. Não houve PUT real, escrita em equipamentos, publicação ou alterações de
+estrutura. Abrir o app, marcar a confirmação e fazer rerun posterior não geraram
+chamadas adicionais.
+
+As tarefas 3.1 e 3.2 estão comprovadas pela inicialização, consulta e cadastro
+integrados. A 3.5 combina exclusão permitida integrada, apresentação local simulada
+do bloqueio por equipamentos e evidências anteriores da 2.5 para esse bloqueio no
+backend. O bloqueio integrado não foi repetido em cliente preexistente nesta
+rodada, respeitando a autorização. A 3.6 tem cobertura local de falhas sem falso
+sucesso. Os registros antigos de antecipação limitada abaixo descrevem a sequência
+histórica, não o estado atual de conclusão dessas tarefas.
+
+A 1.3 permanece pendente de comprovação integrada de rejeições sem persistência
+e de normalização. Não se presume equivalência atual das funções auxiliares
+remotas apenas a partir do código local. O lote adicional proposto exige
+autorização específica e não foi executado nesta rodada. Evidências completas,
+limitações e escopo de rede estão em `docs/validacao-mvp-clientes.md`; o plano
+pendente está em `docs/plano-validacao-backend-clientes.md`.
 
 - **[Indisponibilidade do Xano]** → Apresentar mensagens de erro na interface e permitir nova tentativa.
 - **[Falhas de comunicação entre Streamlit e Xano]** → Tratar respostas de erro das APIs e informar o usuário.

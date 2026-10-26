@@ -22,17 +22,17 @@ As dependências 1.4, 1.5 e 1.6 da tarefa 2.5 foram atendidas. O endpoint DELETE
 - [x] 2.3 Criar a API de consulta individual. Verificar o retorno de um cliente existente e a resposta para um cliente inexistente.
 - [x] 2.4 Criar a API de atualização de clientes. Verificar que as alterações sejam persistidas e retornadas em nova consulta.
 - [x] 2.5 Criar a API de exclusão de clientes. Verificar a exclusão de clientes sem equipamentos vinculados e o bloqueio da exclusão quando houver vínculos.
-- [ ] 2.6 Registrar os endpoints e os dados necessários para consumi-los. Verificar se as informações documentadas correspondem às APIs disponíveis no Xano.
+- [x] 2.6 Registrar os endpoints e os dados necessários para consumi-los. Verificar se as informações documentadas correspondem às APIs disponíveis no Xano.
 
 ## 3. Interface de clientes em Streamlit
 
-Antecipação limitada aprovada para demonstração acadêmica: preparar a tarefa 3.1, o cadastro da 3.2, somente a listagem da 3.3 e o tratamento de falhas desses fluxos previsto na 3.6, consumindo exclusivamente as APIs existentes `POST /clientes` e `GET /clientes`. Essa preparação pode avançar antes da conclusão integral das etapas anteriores, sem dispensar qualquer dependência, requisito ou critério de verificação. A consulta individual continua necessária para concluir a 3.3, e a 3.6 continua exigindo o tratamento dos demais fluxos previstos. A edição da 3.4 e a exclusão da 3.5 não integram essa antecipação.
+Registro histórico da antecipação limitada para demonstração acadêmica: a preparação inicial compreendeu a tarefa 3.1, o cadastro da 3.2, somente a listagem da 3.3 e o tratamento de falhas desses fluxos previsto na 3.6, consumindo `POST /clientes` e `GET /clientes`. A consulta individual, a edição e a exclusão foram tratadas em etapas posteriores, sem dispensar requisitos ou critérios de verificação.
 
-As tarefas 1.4, 1.6 e 2.5 estão concluídas em seus respectivos escopos; a tarefa 1.3 permanece pendente. A limitação de integridade concorrente foi aceita para o escopo sequencial atual, sem solução técnica, e a tarefa 2.5 mantém suas dependências das tarefas 1.4, 1.5 e 1.6 no escopo revisado, agora atendidas. A interface não implementará exclusão nem gerenciamento de equipamentos nesta entrega parcial. Os demais critérios funcionais permanecem exigidos; a conclusão da 1.6 não comprova a exclusão nem a conclusão da Change. Novas implementações e testes integrados com consultas ou gravações no Xano exigem autorização específica; este registro é exclusivamente documental.
+Estado atualizado em 26/10/2026: as tarefas 3.1 e 3.2 foram comprovadas por inicialização e cadastro reais via AppTest/Streamlit. A 3.5 combina 31 testes locais iniciais, a suíte ampliada de 49 testes, apresentação simulada do bloqueio por equipamentos e teste integrado de criação/exclusão exclusivamente do cliente descartável 13, preservando os sete clientes preexistentes. O bloqueio do backend mantém as evidências anteriores da 2.5; não foi repetido DELETE em registros preexistentes nesta rodada. A 3.6 possui cobertura local dos fluxos com HTTP simulado e rede externa bloqueada. Evidências e limites estão em `docs/validacao-mvp-clientes.md` e no design. A 1.3 permanece pendente de testes integrados específicos; seu plano adicional de escrita requer autorização. A limitação concorrente aceita continua vigente. Este registro não autoriza novas operações no Xano.
 
-- [ ] 3.1 Preparar a estrutura da aplicação Python com Streamlit e a configuração de acesso às APIs do Xano. Verificar que a aplicação inicia e consegue consultar o backend.
-- [ ] 3.2 Implementar o formulário de cadastro de clientes. Verificar que o envio de dados válidos cria um registro no Xano.
+- [x] 3.1 Preparar a estrutura da aplicação Python com Streamlit e a configuração de acesso às APIs do Xano. Verificar que a aplicação inicia e consegue consultar o backend.
+- [x] 3.2 Implementar o formulário de cadastro de clientes. Verificar que o envio de dados válidos cria um registro no Xano.
 - [x] 3.3 Implementar a listagem e a consulta individual de clientes. Verificar a exibição dos dados e da mensagem para cliente inexistente.
 - [x] 3.4 Implementar a edição de clientes. Verificar que os dados alterados são apresentados corretamente após nova consulta.
-- [ ] 3.5 Implementar a exclusão de clientes. Verificar a exclusão permitida e a apresentação da mensagem de bloqueio quando houver equipamentos vinculados.
-- [ ] 3.6 Tratar falhas de comunicação e respostas de erro das APIs. Verificar que a interface informa o problema sem apresentar uma confirmação de sucesso da operação.
+- [x] 3.5 Implementar a exclusão de clientes. Verificar a exclusão permitida e a apresentação da mensagem de bloqueio quando houver equipamentos vinculados.
+- [x] 3.6 Tratar falhas de comunicação e respostas de erro das APIs. Verificar que a interface informa o problema sem apresentar uma confirmação de sucesso da operação.
