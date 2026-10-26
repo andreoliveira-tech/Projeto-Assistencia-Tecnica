@@ -4,7 +4,10 @@ import streamlit as st
 from pathlib import Path
 
 from config import load_api_base_url
-from clientes_api import CadastroError, ListagemError, cadastrar_cliente, listar_clientes
+from clientes_api import (
+    CadastroError, ClienteNaoEncontradoError, ConsultaError, ListagemError,
+    AtualizacaoError, atualizar_cliente, cadastrar_cliente, consultar_cliente, listar_clientes,
+)
 
 
 st.set_page_config(
@@ -27,6 +30,8 @@ with st.sidebar:
         '<nav class="client-nav" aria-label="Navegação de clientes">'
         '<a href="#cadastrar-cliente" target="_self">Cadastrar cliente <span>↗</span></a>'
         '<a href="#clientes-cadastrados" target="_self">Clientes cadastrados <span>↗</span></a>'
+        '<a href="#consultar-cliente" target="_self">Consultar cliente <span>↗</span></a>'
+        '<a href="#editar-cliente" target="_self">Editar cliente <span>↗</span></a>'
         '</nav>',
         unsafe_allow_html=True,
     )
@@ -120,3 +125,168 @@ else:
                 ],
                 hide_index=True,
             )
+
+        st.divider()
+        st.subheader("Consultar cliente", anchor="consultar-cliente")
+        st.caption("Informe o identificador para consultar um cliente específico.")
+        if (
+            "cliente_consulta" not in st.session_state
+            or st.session_state.cliente_consulta["base_url"] != api_base_url
+        ):
+            st.session_state.cliente_consulta = {
+                "base_url": api_base_url, "id_cliente": None,
+                "dados": None, "erro": None, "nao_encontrado": False,
+            }
+
+        with st.form("consulta_cliente", clear_on_submit=False, enter_to_submit=False):
+            identificador = st.text_input("Identificador do cliente", key="consulta_id_cliente")
+            consultar = st.form_submit_button("Consultar cliente", type="primary")
+
+        if consultar:
+            estado = {
+                "base_url": api_base_url, "id_cliente": None,
+                "dados": None, "erro": None, "nao_encontrado": False,
+            }
+            st.session_state.cliente_consulta = estado
+            texto_id = identificador.strip()
+            try:
+                if not texto_id or any(caractere not in "0123456789" for caractere in texto_id):
+                    raise ValueError
+                id_consulta = int(texto_id)
+                if id_consulta <= 0:
+                    raise ValueError
+            except ValueError:
+                estado["erro"] = "Informe um identificador inteiro positivo."
+            else:
+                estado["id_cliente"] = id_consulta
+                try:
+                    with st.spinner("Consultando cliente..."):
+                        estado["dados"] = consultar_cliente(api_base_url, id_consulta)
+                except ClienteNaoEncontradoError as error:
+                    estado["erro"] = str(error)
+                    estado["nao_encontrado"] = True
+                except ConsultaError as error:
+                    estado["erro"] = str(error)
+
+        consulta = st.session_state.cliente_consulta
+        if consulta["erro"]:
+            if consulta["nao_encontrado"]:
+                st.info(consulta["erro"])
+            else:
+                st.error(consulta["erro"])
+        elif consulta["dados"] is not None:
+            st.caption(f"Resultado da última consulta ao cliente {consulta['id_cliente']}.")
+            cliente_consultado = consulta["dados"]
+            st.dataframe(
+                [{
+                    "ID": cliente_consultado["id_cliente"],
+                    "Nome": cliente_consultado["nome"],
+                    "CPF": cliente_consultado["cpf"],
+                    "Telefone": cliente_consultado["telefone"],
+                    "E-mail": cliente_consultado["email"],
+                }],
+                hide_index=True,
+            )
+        else:
+            st.info("Informe o identificador e clique em Consultar cliente.")
+
+        st.divider()
+        st.subheader("Editar cliente", anchor="editar-cliente")
+        if (
+            "cliente_edicao" not in st.session_state
+            or st.session_state.cliente_edicao["base_url"] != api_base_url
+        ):
+            st.session_state.cliente_edicao = {
+                "base_url": api_base_url, "id_cliente": None, "geracao": 0,
+                "dados": None, "confirmado": None, "erro": None,
+                "sucesso": False, "conferir": False,
+            }
+        edicao = st.session_state.cliente_edicao
+        with st.form("carregar_edicao", clear_on_submit=False, enter_to_submit=False):
+            id_edicao = st.text_input("Identificador para edição", key="edicao_selecao_id")
+            carregar = st.form_submit_button("Carregar para edição")
+
+        conferir = False
+        if edicao["conferir"]:
+            conferir = st.button("Conferir estado atual", key="conferir_edicao")
+        if carregar or conferir:
+            edicao.update(erro=None, sucesso=False, confirmado=None)
+            try:
+                if carregar:
+                    texto = id_edicao.strip()
+                    if not texto or any(c not in "0123456789" for c in texto):
+                        raise ValueError
+                    alvo = int(texto)
+                    if alvo <= 0:
+                        raise ValueError
+                else:
+                    alvo = edicao["id_cliente"]
+                # Descarta o alvo anterior antes de carregar outro cliente.
+                edicao["dados"] = None
+                edicao["id_cliente"] = alvo
+                with st.spinner("Carregando cliente para edição..."):
+                    edicao["dados"] = consultar_cliente(api_base_url, alvo)
+            except ValueError:
+                edicao.update(dados=None, id_cliente=None, conferir=False)
+                edicao["erro"] = "Informe um identificador inteiro positivo."
+            except ConsultaError as error:
+                edicao["erro"] = str(error)
+            else:
+                edicao["geracao"] += 1
+                edicao["conferir"] = False
+
+        if edicao["dados"] is not None:
+            st.caption(f"Cliente em edição: {edicao['id_cliente']}. O identificador será preservado.")
+            with st.form("editar_cliente", clear_on_submit=False, enter_to_submit=False):
+                dados_edicao = {
+                    campo: st.text_input(
+                        rotulo, value=edicao["dados"][campo],
+                        key=f"edicao_{campo}_{edicao['geracao']}",
+                    )
+                    for campo, rotulo in (
+                        ("nome", "Nome para edição"), ("cpf", "CPF para edição"),
+                        ("telefone", "Telefone para edição"), ("email", "E-mail para edição"),
+                    )
+                }
+                salvar = st.form_submit_button("Salvar alterações", disabled=edicao["conferir"])
+            if salvar and not edicao["conferir"]:
+                edicao.update(erro=None, sucesso=False, confirmado=None)
+                try:
+                    with st.spinner("Salvando alterações..."):
+                        atualizado = atualizar_cliente(api_base_url, edicao["id_cliente"], dados_edicao)
+                except ClienteNaoEncontradoError as error:
+                    edicao.update(dados=None, erro=str(error))
+                except AtualizacaoError as error:
+                    edicao.update(erro=str(error), conferir=error.incerto)
+                else:
+                    edicao["conferir"] = True
+                    try:
+                        with st.spinner("Confirmando atualização por nova consulta..."):
+                            confirmado = consultar_cliente(api_base_url, edicao["id_cliente"])
+                    except ConsultaError:
+                        edicao["erro"] = (
+                            "O serviço respondeu à atualização, mas a nova consulta falhou. "
+                            "Confira o estado atual antes de salvar novamente."
+                        )
+                    else:
+                        campos = ("id_cliente", "nome", "cpf", "telefone", "email")
+                        if any(confirmado[c] != atualizado[c] for c in campos):
+                            edicao["erro"] = (
+                                "Os dados consultados diferem da resposta da atualização. "
+                                "Confira o estado atual antes de salvar novamente."
+                            )
+                        else:
+                            edicao.update(confirmado=confirmado, sucesso=True, conferir=False)
+        if edicao["erro"]:
+            st.error(edicao["erro"])
+        if edicao["sucesso"]:
+            st.success("Atualização confirmada por nova consulta.")
+            cliente_confirmado = edicao["confirmado"]
+            st.dataframe(
+                [{rotulo: cliente_confirmado[campo] for campo, rotulo in (
+                    ("id_cliente", "ID"), ("nome", "Nome"), ("cpf", "CPF"),
+                    ("telefone", "Telefone"), ("email", "E-mail"),
+                )}], hide_index=True,
+            )
+        if edicao["conferir"]:
+            st.warning("Atualização sem confirmação. Use Conferir estado atual antes de um novo envio.")

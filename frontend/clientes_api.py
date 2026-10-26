@@ -1,4 +1,4 @@
-"""Integração com cadastro e listagem de clientes, sem repetição automática."""
+"""Integração com cadastro e consultas de clientes, sem repetição automática."""
 
 import requests
 
@@ -50,8 +50,101 @@ def cadastrar_cliente(base_url: str, dados: dict[str, str]) -> dict:
     return payload
 
 
+class ConsultaError(Exception):
+    """Falha de consulta individual que pode ser apresentada ao usuário."""
+
+
+class ClienteNaoEncontradoError(ConsultaError):
+    """O identificador consultado não corresponde a um cliente."""
+
+
+def consultar_cliente(base_url: str, id_cliente: int) -> dict:
+    """Consulta um identificador positivo e confere o contrato da resposta."""
+    if type(id_cliente) is not int or id_cliente <= 0:
+        raise ConsultaError("Informe um identificador inteiro positivo.")
+
+    try:
+        response = requests.get(
+            f"{base_url.rstrip('/')}/clientes/{id_cliente}",
+            timeout=(5, 20),
+            allow_redirects=False,
+        )
+    except requests.exceptions.Timeout:
+        raise ConsultaError("Tempo de resposta excedido ao consultar o cliente. Tente novamente.") from None
+    except requests.exceptions.RequestException:
+        raise ConsultaError("Não foi possível comunicar com o serviço de clientes. Tente novamente.") from None
+
+    if response.status_code == 404:
+        raise ClienteNaoEncontradoError("Cliente não encontrado.")
+    if not 200 <= response.status_code < 300:
+        raise ConsultaError("O serviço não conseguiu retornar o cliente. Tente novamente mais tarde.")
+    try:
+        payload = response.json()
+    except ValueError:
+        raise ConsultaError("O serviço retornou um cliente em formato inválido.") from None
+
+    if (
+        not isinstance(payload, dict)
+        or type(payload.get("id_cliente")) is not int
+        or payload["id_cliente"] != id_cliente
+        or any(not isinstance(payload.get(campo), str) for campo in ("nome", "cpf", "telefone", "email"))
+    ):
+        raise ConsultaError("O serviço retornou um cliente em formato inválido.")
+    return payload
+
+
 class ListagemError(Exception):
     """Falha de consulta que pode ser apresentada ao usuário."""
+
+
+class AtualizacaoError(Exception):
+    """Falha de atualização, com indicação de resultado possivelmente incerto."""
+
+    def __init__(self, mensagem: str, incerto: bool = False):
+        super().__init__(mensagem)
+        self.incerto = incerto
+
+
+def atualizar_cliente(base_url: str, id_cliente: int, dados: dict[str, str]) -> dict:
+    """Envia um único PUT; a confirmação por GET cabe ao chamador."""
+    if type(id_cliente) is not int or id_cliente <= 0:
+        raise AtualizacaoError("Informe um identificador inteiro positivo.")
+    campos = ("nome", "cpf", "telefone", "email")
+    if any(not isinstance(dados.get(campo), str) or not dados[campo].strip() for campo in campos):
+        raise AtualizacaoError("Preencha nome, CPF, telefone e e-mail.")
+    aviso = "Não foi possível confirmar a atualização. Confira o estado atual antes de salvar novamente."
+    try:
+        response = requests.put(
+            f"{base_url.rstrip('/')}/clientes/{id_cliente}",
+            json={campo: dados[campo] for campo in campos},
+            timeout=(5, 20),
+            allow_redirects=False,
+        )
+    except requests.exceptions.Timeout:
+        raise AtualizacaoError(f"Tempo de resposta excedido. {aviso}", incerto=True) from None
+    except requests.exceptions.RequestException:
+        raise AtualizacaoError(f"Falha de comunicação com o serviço. {aviso}", incerto=True) from None
+    if response.status_code == 404:
+        raise ClienteNaoEncontradoError("Cliente não encontrado.")
+    try:
+        payload = response.json()
+    except ValueError:
+        payload = None
+    if 400 <= response.status_code < 500:
+        mensagem = payload.get("message") if isinstance(payload, dict) else None
+        if isinstance(mensagem, str) and mensagem.strip():
+            raise AtualizacaoError(f"Atualização rejeitada pelo serviço: {mensagem[:500]}")
+        raise AtualizacaoError("O serviço rejeitou a atualização. Confira os dados informados.")
+    if not 200 <= response.status_code < 300:
+        raise AtualizacaoError(f"Resposta inesperada do serviço. {aviso}", incerto=True)
+    if (
+        not isinstance(payload, dict)
+        or type(payload.get("id_cliente")) is not int
+        or payload["id_cliente"] != id_cliente
+        or any(not isinstance(payload.get(campo), str) for campo in campos)
+    ):
+        raise AtualizacaoError(f"Resposta de atualização fora do formato esperado. {aviso}", incerto=True)
+    return payload
 
 
 def listar_clientes(base_url: str) -> list[dict]:
